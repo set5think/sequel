@@ -540,6 +540,20 @@ describe "A PostgreSQL database" do
     @db[:posts].order(:a).map(:a).should == [1, 2, 10, 20, 21]
   end
 
+  specify "should support resetting the primary key sequence for a table in a schema other than public" do
+    @db.drop_schema(:blogger, :if_exists => true)
+    @db.create_schema(:blogger)
+    @db.create_table(:blogger__lineitems){primary_key :a}
+    @db[:blogger__lineitems].insert(:a=>20).should == 20
+    @db[:blogger__lineitems].insert.should == 1
+    @db[:blogger__lineitems].insert.should == 2
+    @db[:blogger__lineitems].insert(:a=>10).should == 10
+    @db.reset_primary_key_sequence(:blogger__lineitems).should == 21
+    @db[:blogger__lineitems].insert.should == 21
+    @db[:blogger__lineitems].order(:a).map(:a).should == [1, 2, 10, 20, 21]
+    @db.drop_table?(:blogger__lineitems)
+  end
+
   specify "should support specifying Integer/Bignum/Fixnum types in primary keys and have them be auto incrementing" do
     @db.create_table(:posts){primary_key :a, :type=>Integer}
     @db[:posts].insert.should == 1
